@@ -1,0 +1,257 @@
+Enter file contents here
+
+********************************** ScoreLayer.h **********************************
+#ifndef __SCORE_LAYER_H__
+#define __SCORE_LAYER_H__
+
+#include "cocos2d.h"
+
+USING_NS_CC;
+
+class ScoreLayer : public cocos2d::Layer
+{
+private:
+	Size visibleSize;
+
+public:
+	static cocos2d::Scene* createScene();
+	virtual bool init();
+	CREATE_FUNC(ScoreLayer);
+};
+
+#endif
+**********************************************************************************
+
+
+********************************** ScoreLayer.cpp *********************************
+#include "ScoreLayer.h"
+#include <iostream>
+
+Scene* ScoreLayer:: createScene()
+{
+	auto scene = Scene::create();
+	auto layer = ScoreLayer::create();
+
+	scene->addChild(layer);
+
+	return scene;
+}
+
+bool ScoreLayer::init()
+{
+	if(!Layer::init())
+	{
+		return false;
+	}
+
+	visibleSize = Director::getInstance()->getVisibleSize();
+
+	auto gameover_bg = Sprite::create("images/bg_gameover.png");
+	gameover_bg->setAnchorPoint(ccp(0, 0));
+	this->addChild(gameover_bg);
+
+	auto gameover  = LabelBMFont::create("GAMEOVER", "fonts/xenon.fnt");
+	gameover->setScale(1.2);
+	gameover->setAnchorPoint(ccp(0.5, 0.5));
+	gameover->setPosition(160, 400);
+	this->addChild(gameover);
+
+	auto lbPlayer1 = LabelBMFont::create("1P:   ", "fonts/consolas.fnt");
+	lbPlayer1->setScale(1);
+	lbPlayer1->setAnchorPoint(ccp(0, 0.5));
+	lbPlayer1->setPosition(95, 330);
+	this->addChild(lbPlayer1);
+
+	// 스코어 대입만 하면 됨.
+	auto lbScore1 = LabelBMFont::create("" + 0, "fonts/consolas.fnt");
+	lbScore1->setScale(1);
+	lbScore1->setAnchorPoint(ccp(0, 0.5));
+	lbScore1->setPosition(95, 330);
+	this->addChild(lbScore1);
+
+	auto comcats  = LabelBMFont::create("COMCATS", "fonts/consolas.fnt");
+	comcats->setScale(0.75);
+	comcats->setAnchorPoint(ccp(0.5, 0.5));
+	comcats->setPosition(160, 105);
+	this->addChild(comcats);
+
+	auto communication  = LabelBMFont::create("5435 Communication", "fonts/consolas_w.fnt");
+	communication->setScale(0.5);
+	communication->setAnchorPoint(ccp(0.5, 0.5));
+	communication->setPosition(160, 80);
+	this->addChild(communication);
+
+	CocosDenshion::SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sound/bg/bg_gameOver.mp3", false);
+
+	return true;
+}
+**********************************************************************************
+
+********************************** GameLayer.h **********************************
+#ifndef __GAME_LAYER_H__
+#define __GAME_LAYER_H__
+
+#include "cocos2d.h"
+#include "../Background.h"
+
+USING_NS_CC;
+
+class GameLayer : public cocos2d::Layer
+{
+private:
+	SpriteBatchNode* _shipBatch;
+	SpriteBatchNode* _backgroundBatch;
+
+	Background* _background;
+	Background* _backgroundRe;
+	char** _backgroundStr;
+
+	int _backSkyHeight;
+	int _backSkyIdx;
+	bool isBackSkyReload;
+
+	Size visibleSize;
+
+
+public:
+	GameLayer();
+
+	static cocos2d::Scene* createScene();
+	virtual bool init();
+	CREATE_FUNC(GameLayer);
+
+	bool initBackground();
+	void movingBackground(float);
+	void update(float);
+};
+
+#endif
+**********************************************************************************
+
+********************************** GameLayer.cpp **********************************
+#include "GameLayer.h"
+#include "../GameController.h"
+//#include "../fighter/F22.h"
+//#include "../fighter/F117.h"
+#include <string>
+#include <stdlib.h>
+
+Scene* GameLayer::createScene()
+{
+	auto scene = Scene::create();
+	auto layer = GameLayer::create();
+
+	scene->addChild(layer);
+
+	return scene;
+}
+
+GameLayer::GameLayer()
+{
+	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("images/ship1.plist");
+	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("images/ship3.plist");
+	SpriteFrameCache::getInstance()->addSpriteFramesWithFile("images/background.plist");
+
+
+	visibleSize = Director::getInstance()->getVisibleSize();
+	_backSkyIdx = 0;
+	this->isBackSkyReload = false;
+	_backgroundStr = new char*[3];
+	_backgroundStr[0] = "s1_1.png";
+	_backgroundStr[1] = "s1_2.png";
+	_backgroundStr[2] = "s1_3.png";
+
+/*	_background = new Background* [3];
+	_background[0] = Background::create("s1_1.png");
+	_background[1] = Background::create("s1_2.png");
+	_background[2] = Background::create("s1_3.png");*/
+
+
+	// cache background
+	auto tmpBackground = TextureCache::getInstance()->addImage("images/background.png");
+	_backgroundBatch = SpriteBatchNode::createWithTexture(tmpBackground);
+	this->addChild(_backgroundBatch);
+
+	// cache F22
+	//auto tmpShip = TextureCache::getInstance()->addImage("images/ship1.png");
+	//_shipBatch = SpriteBatchNode::createWithTexture(tmpShip);
+	//this->addChild(_shipBatch);
+
+	// cache F117
+	//tmpShip = TextureCache::getInstance()->addImage("images/ship3.png");
+	//_shipBatch = SpriteBatchNode::createWithTexture(tmpShip);
+	//this->addChild(_shipBatch);
+}
+
+bool GameLayer::init()
+{
+	if(!Layer::init())
+	{
+		return false;
+	}
+
+	CocosDenshion::SimpleAudioEngine::sharedEngine()->playEffect("sound/sfx/sfx_006.mp3", false);
+	CocosDenshion::SimpleAudioEngine::sharedEngine()->playBackgroundMusic("sound/bg/bg_stage1.mp3", true);
+
+	//auto f22 = new F22();
+	//this->addChild(f22);
+
+	//auto f117 = new F117();
+	//this->addChild(f117);
+
+	initBackground();
+	this->scheduleUpdate();
+
+	return true;
+}
+
+void GameLayer::update(float dt)
+{
+
+}
+
+bool GameLayer::initBackground()
+{
+	_background = Background::create(_backgroundStr[_backSkyIdx++]); //s1_1, s1_2, s1_3
+	_backSkyHeight = this->_background->getContentSize().height;
+	this->addChild(_background);
+
+//	moveTimerHandler(0.1);
+
+	this->schedule(schedule_selector(GameLayer::movingBackground), 0.1);
+
+	return true;
+}
+
+void GameLayer::movingBackground(float dt) {
+
+	if (_backSkyIdx == 3) {
+		_backSkyIdx = 0;
+	}
+
+	this->_background->runAction(MoveBy::create(0.1, ccp(0, -5)));
+	this->_backSkyHeight -= 5;
+
+	if(this->_backSkyHeight <= visibleSize.height)
+	{
+		if (!this->isBackSkyReload)
+		{
+			if (this->_backSkyIdx > 3)
+				this->_backSkyIdx = 3;
+			this->_backgroundRe =  Background::create(_backgroundStr[_backSkyIdx++]);
+			this->_backgroundRe->setPosition(0, visibleSize.height);
+			this->isBackSkyReload = true;
+			this->addChild(_backgroundRe);
+		}
+		this->_backgroundRe->runAction(MoveBy::create(0.1, ccp(0, -5)));
+	}
+	if (this->_backSkyHeight <= 0)
+	{
+		this->_backSkyHeight = this->_background->getContentSize().height;
+		this->_background->destroy();
+		this->_background = this->_backgroundRe;
+		//this->_backgroundRe->destroy();
+		this->isBackSkyReload = false;
+	}
+}
+**********************************************************************************
